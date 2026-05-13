@@ -17,7 +17,7 @@ class FilterEndpoint {
 		$payload  = isset( $_POST['filters'] ) ? json_decode( (string) wp_unslash( $_POST['filters'] ), true ) : array();
 		$payload  = is_array( $payload ) ? $payload : array();
 		$paged    = isset( $_POST['paged'] ) ? absint( $_POST['paged'] ) : 1;
-		$relation = isset( $_POST['relation'] ) && 'OR' === strtoupper( sanitize_text_field( wp_unslash( $_POST['relation'] ) ) ) ? 'OR' : 'AND';
+		$relation = 'AND';
 
 		$tax_query  = array( 'relation' => $relation );
 		$meta_query = array();

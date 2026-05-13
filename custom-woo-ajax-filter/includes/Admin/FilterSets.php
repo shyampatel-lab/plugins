@@ -23,13 +23,9 @@ class FilterSets {
 
 	public function render_metabox( \WP_Post $post ): void {
 		wp_nonce_field( 'cwaf_save_filter_set', 'cwaf_nonce' );
-		$filters = (array) get_post_meta( $post->ID, '_cwaf_filters', true );
-		$layout = (string) get_post_meta( $post->ID, '_cwaf_layout', true ) ?: 'sidebar';
-		$relation = (string) get_post_meta( $post->ID, '_cwaf_relation', true ) ?: 'AND';
+		$filters          = (array) get_post_meta( $post->ID, '_cwaf_filters', true );
 		$taxonomy_objects = get_object_taxonomies( 'product', 'objects' );
 		?>
-		<p><label><strong><?php esc_html_e( 'Filter Layout', 'custom-woo-ajax-filter' ); ?></strong></label> <select name="cwaf_layout"><option value="sidebar" <?php selected( $layout, 'sidebar' ); ?>>Sidebar</option><option value="topbar" <?php selected( $layout, 'topbar' ); ?>>Top Bar</option><option value="accordion" <?php selected( $layout, 'accordion' ); ?>>Accordion</option></select></p>
-		<p><label><strong><?php esc_html_e( 'Condition Relation', 'custom-woo-ajax-filter' ); ?></strong></label> <select name="cwaf_relation"><option value="AND" <?php selected( $relation, 'AND' ); ?>>AND</option><option value="OR" <?php selected( $relation, 'OR' ); ?>>OR</option></select></p>
 		<table class="widefat"><thead><tr><th>Source</th><th>Label</th><th>Type</th><th>Min</th><th>Max</th><th>Step</th></tr></thead><tbody>
 		<?php for ( $i = 0; $i < 10; $i++ ) : $row = $filters[ $i ] ?? array(); ?>
 			<tr>
@@ -41,6 +37,7 @@ class FilterSets {
 			<td><input type="number" name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][step]" value="<?php echo esc_attr( $row['step'] ?? '1' ); ?>"></td>
 			</tr>
 		<?php endfor; ?></tbody></table>
+		<p><em><?php esc_html_e( 'Filter logic is fixed to AND by default.', 'custom-woo-ajax-filter' ); ?></em></p>
 		<?php
 	}
 
@@ -48,24 +45,16 @@ class FilterSets {
 		if ( ! isset( $_POST['cwaf_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['cwaf_nonce'] ) ), 'cwaf_save_filter_set' ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
-		$rows = isset( $_POST['cwaf_filters'] ) ? (array) wp_unslash( $_POST['cwaf_filters'] ) : array();
+		$rows    = isset( $_POST['cwaf_filters'] ) ? (array) wp_unslash( $_POST['cwaf_filters'] ) : array();
 		$filters = array();
 		foreach ( $rows as $row ) {
 			$source = isset( $row['source'] ) ? sanitize_key( $row['source'] ) : '';
 			if ( ! $source || ( 'price' !== $source && ! taxonomy_exists( $source ) ) ) {
 				continue;
 			}
-			$filters[] = array(
-				'source' => $source,
-				'type'   => isset( $row['type'] ) ? sanitize_key( $row['type'] ) : 'checkbox',
-				'label'  => isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '',
-				'min'    => isset( $row['min'] ) ? (float) $row['min'] : 0,
-				'max'    => isset( $row['max'] ) ? (float) $row['max'] : 1000,
-				'step'   => isset( $row['step'] ) ? (float) $row['step'] : 1,
-			);
+			$filters[] = array( 'source' => $source, 'type' => isset( $row['type'] ) ? sanitize_key( $row['type'] ) : 'checkbox', 'label' => isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '', 'min' => isset( $row['min'] ) ? (float) $row['min'] : 0, 'max' => isset( $row['max'] ) ? (float) $row['max'] : 1000, 'step' => isset( $row['step'] ) ? (float) $row['step'] : 1 );
 		}
-		update_post_meta( $post_id, '_cwaf_layout', isset( $_POST['cwaf_layout'] ) ? sanitize_key( wp_unslash( $_POST['cwaf_layout'] ) ) : 'sidebar' );
-		update_post_meta( $post_id, '_cwaf_relation', isset( $_POST['cwaf_relation'] ) && 'OR' === strtoupper( sanitize_text_field( wp_unslash( $_POST['cwaf_relation'] ) ) ) ? 'OR' : 'AND' );
+		update_post_meta( $post_id, '_cwaf_relation', 'AND' );
 		update_post_meta( $post_id, '_cwaf_filters', $filters );
 	}
 }
