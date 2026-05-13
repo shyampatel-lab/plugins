@@ -26,18 +26,26 @@ class FilterSets {
 		$filters          = (array) get_post_meta( $post->ID, '_cwaf_filters', true );
 		$taxonomy_objects = get_object_taxonomies( 'product', 'objects' );
 		?>
-		<table class="widefat"><thead><tr><th>Source</th><th>Label</th><th>Type</th><th>Min</th><th>Max</th><th>Step</th></tr></thead><tbody>
-		<?php for ( $i = 0; $i < 10; $i++ ) : $row = $filters[ $i ] ?? array(); ?>
-			<tr>
+		<table class="widefat" id="cwaf-filter-table"><thead><tr><th>Source</th><th>Label</th><th>Type</th><th>Step</th><th></th></tr></thead><tbody>
+		<?php foreach ( $filters as $i => $row ) : ?>
+		<tr>
 			<td><select name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][source]"><option value="">Select</option><option value="price" <?php selected( $row['source'] ?? '', 'price' ); ?>>Price</option><?php foreach ( $taxonomy_objects as $tax ) : ?><option value="<?php echo esc_attr( $tax->name ); ?>" <?php selected( $row['source'] ?? '', $tax->name ); ?>><?php echo esc_html( $tax->label ); ?></option><?php endforeach; ?></select></td>
 			<td><input type="text" name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][label]" value="<?php echo esc_attr( $row['label'] ?? '' ); ?>"></td>
 			<td><select name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][type]"><option value="checkbox" <?php selected( $row['type'] ?? '', 'checkbox' ); ?>>Checkbox</option><option value="radio" <?php selected( $row['type'] ?? '', 'radio' ); ?>>Radio</option><option value="dropdown" <?php selected( $row['type'] ?? '', 'dropdown' ); ?>>Dropdown</option><option value="text" <?php selected( $row['type'] ?? '', 'text' ); ?>>Text</option><option value="range" <?php selected( $row['type'] ?? '', 'range' ); ?>>Range Slider</option></select></td>
-			<td><input type="number" name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][min]" value="<?php echo esc_attr( $row['min'] ?? '' ); ?>"></td>
-			<td><input type="number" name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][max]" value="<?php echo esc_attr( $row['max'] ?? '' ); ?>"></td>
 			<td><input type="number" name="cwaf_filters[<?php echo esc_attr( (string) $i ); ?>][step]" value="<?php echo esc_attr( $row['step'] ?? '1' ); ?>"></td>
-			</tr>
-		<?php endfor; ?></tbody></table>
-		<p><em><?php esc_html_e( 'Filter logic is fixed to AND by default.', 'custom-woo-ajax-filter' ); ?></em></p>
+			<td><button type="button" class="button cwaf-remove-row">Remove</button></td>
+		</tr>
+		<?php endforeach; ?>
+		</tbody></table>
+		<p><button type="button" class="button button-primary" id="cwaf-add-row">Add Attribute Filter</button></p>
+		<script>
+		(function(){
+			const table=document.getElementById('cwaf-filter-table').querySelector('tbody');
+			const options=`<option value="">Select</option><option value="price">Price</option><?php foreach ( $taxonomy_objects as $tax ) : ?><option value="<?php echo esc_attr( $tax->name ); ?>"><?php echo esc_html( $tax->label ); ?></option><?php endforeach; ?>`;
+			document.getElementById('cwaf-add-row').addEventListener('click',()=>{const i=table.querySelectorAll('tr').length;const tr=document.createElement('tr');tr.innerHTML=`<td><select name="cwaf_filters[${i}][source]">${options}</select></td><td><input type="text" name="cwaf_filters[${i}][label]"></td><td><select name="cwaf_filters[${i}][type]"><option value="checkbox">Checkbox</option><option value="radio">Radio</option><option value="dropdown">Dropdown</option><option value="text">Text</option><option value="range">Range Slider</option></select></td><td><input type="number" name="cwaf_filters[${i}][step]" value="1"></td><td><button type="button" class="button cwaf-remove-row">Remove</button></td>`;table.appendChild(tr);});
+			document.addEventListener('click',(e)=>{if(e.target.classList.contains('cwaf-remove-row')) e.target.closest('tr').remove();});
+		})();
+		</script>
 		<?php
 	}
 
@@ -52,9 +60,9 @@ class FilterSets {
 			if ( ! $source || ( 'price' !== $source && ! taxonomy_exists( $source ) ) ) {
 				continue;
 			}
-			$filters[] = array( 'source' => $source, 'type' => isset( $row['type'] ) ? sanitize_key( $row['type'] ) : 'checkbox', 'label' => isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '', 'min' => isset( $row['min'] ) ? (float) $row['min'] : 0, 'max' => isset( $row['max'] ) ? (float) $row['max'] : 1000, 'step' => isset( $row['step'] ) ? (float) $row['step'] : 1 );
+			$filters[] = array( 'source' => $source, 'type' => isset( $row['type'] ) ? sanitize_key( $row['type'] ) : 'checkbox', 'label' => isset( $row['label'] ) ? sanitize_text_field( $row['label'] ) : '', 'step' => isset( $row['step'] ) ? (float) $row['step'] : 1 );
 		}
 		update_post_meta( $post_id, '_cwaf_relation', 'AND' );
-		update_post_meta( $post_id, '_cwaf_filters', $filters );
+		update_post_meta( $post_id, '_cwaf_filters', array_values( $filters ) );
 	}
 }
