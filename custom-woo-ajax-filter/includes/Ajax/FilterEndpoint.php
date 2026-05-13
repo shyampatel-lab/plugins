@@ -22,7 +22,7 @@ class FilterEndpoint {
 		$tax_query = array( 'relation' => $relation );
 		$meta_query = array();
 		foreach ( $payload as $key => $value ) {
-			if ( in_array( $key, array( 'search', 'min_price', 'max_price', 'orderby' ), true ) ) {
+			if ( in_array( $key, array( 'search', 'min_price', 'max_price', 'orderby', 'price_min', 'price_max' ), true ) || str_ends_with( (string) $key, '_min' ) || str_ends_with( (string) $key, '_max' ) ) {
 				continue;
 			}
 			if ( taxonomy_exists( sanitize_key( $key ) ) ) {
@@ -32,8 +32,8 @@ class FilterEndpoint {
 				}
 			}
 		}
-		$min_price = isset( $payload['min_price'] ) ? (float) $payload['min_price'] : 0;
-		$max_price = isset( $payload['max_price'] ) ? (float) $payload['max_price'] : 0;
+		$min_price = isset( $payload['price_min'] ) ? (float) $payload['price_min'] : ( isset( $payload['min_price'] ) ? (float) $payload['min_price'] : 0 );
+		$max_price = isset( $payload['price_max'] ) ? (float) $payload['price_max'] : ( isset( $payload['max_price'] ) ? (float) $payload['max_price'] : 0 );
 		if ( $min_price || $max_price ) {
 			$meta_query[] = array( 'key' => '_price', 'value' => array( $min_price, $max_price ? $max_price : 99999999 ), 'compare' => 'BETWEEN', 'type' => 'DECIMAL' );
 		}
