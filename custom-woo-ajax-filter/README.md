@@ -19,6 +19,7 @@
 - Product list updates with no page refresh
 - Query parameters update dynamically for SEO/shareable URLs
 
+
 ## Hooks
 - `wp_ajax_cwaf_filter_products`
 - `wp_ajax_nopriv_cwaf_filter_products`
