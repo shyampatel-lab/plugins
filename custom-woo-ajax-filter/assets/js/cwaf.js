@@ -1,29 +1,12 @@
-(function () {
-  function serializeFilters(form) {
-    const data = {};
-    form.querySelectorAll('input, select').forEach((field) => {
-      if (!field.name) return;
-      if ((field.type === 'checkbox' || field.type === 'radio') && !field.checked) return;
-      if (field.type === 'range' && field.dataset.source) {
-        data[`${field.dataset.source}_${field.dataset.bound}`] = field.value;
-        return;
-      }
-      const key = field.name.replace('[]', '');
-      if (field.name.includes('[]')) {
-        if (!data[key]) data[key] = [];
-        data[key].push(field.value);
-      } else data[key] = field.value;
-    });
-    return data;
-  }
-  function updateUrl(filters) { const p = new URLSearchParams(); Object.keys(filters).forEach((k)=>p.set(k, Array.isArray(filters[k])?filters[k].join(','):filters[k])); history.pushState({filters}, '', `${window.location.pathname}?${p.toString()}`); }
-  async function fetchResults(wrapper) {
-    const filters = serializeFilters(wrapper.querySelector('.cwaf-form')); updateUrl(filters);
-    const body = new URLSearchParams({ action:'cwaf_filter_products', nonce:cwafData.nonce, paged:'1', relation: wrapper.dataset.relation || 'AND', filters: JSON.stringify(filters) });
-    const res = await fetch(cwafData.ajaxUrl, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() });
-    const data = await res.json(); if(data.success) wrapper.querySelector('.cwaf-results').innerHTML = data.data.html;
-  }
-  document.addEventListener('change', (e)=>{ const w=e.target.closest('.cwaf-wrap'); if(w) fetchResults(w); });
-  document.addEventListener('input', (e)=>{ if(e.target.matches('input[type="search"],input[type="number"],input[type="range"]')) { const w=e.target.closest('.cwaf-wrap'); if(w) fetchResults(w);} });
-  document.addEventListener('click', (e)=>{ if(e.target.matches('.cwaf-clear')){ const w=e.target.closest('.cwaf-wrap'); w.querySelectorAll('input').forEach((i)=>{ if(['checkbox','radio'].includes(i.type)) i.checked=false; else i.value=i.min||'';}); w.querySelectorAll('select').forEach((s)=>s.selectedIndex=0); fetchResults(w);} });
+(function(){
+function gather(root){const data={};root.querySelectorAll('.cwaf-form input,.cwaf-form select,.cwaf-live-search,.cwaf-sort select').forEach(f=>{if(!f.name&& !f.classList.contains('cwaf-live-search')) return; if((f.type==='checkbox'||f.type==='radio')&&!f.checked) return; if(f.type==='range'&&f.dataset.source){data[`${f.dataset.source}_${f.dataset.bound}`]=f.value; return;} const k=f.classList.contains('cwaf-live-search')?'search':f.name.replace('[]',''); if(f.name&&f.name.includes('[]')){if(!data[k]) data[k]=[]; data[k].push(f.value);} else data[k]=f.value;});return data;}
+function active(root,data){const out=[];Object.keys(data).forEach(k=>{if(['search','orderby'].includes(k)) return; const v=data[k]; if(Array.isArray(v)) v.forEach(x=>out.push(`${k}: ${x}`)); else out.push(`${k}: ${v}`);}); root.querySelector('.cwaf-active-list').textContent=out.length?out.join(' | '):'None';}
+async function run(root,p=1){const filters=gather(root);active(root,filters);const body=new URLSearchParams({action:'cwaf_filter_products',nonce:cwafData.nonce,paged:String(p),relation:root.dataset.relation||'AND',filters:JSON.stringify(filters)}); const r=await fetch(cwafData.ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});const d=await r.json();if(d.success){root.querySelector('.cwaf-results').innerHTML=d.data.html;root.querySelector('.cwaf-results-count').textContent=`${d.data.found} results found`;const pag=(d.data.pagination||[]).map((a)=>`<button class="cwaf-page" data-page="${(a.match(/#page\/(\d+)/)||[])[1]||1}">${a.replace(/<[^>]+>/g,'')}</button>`).join('');root.querySelector('.cwaf-pagination').innerHTML=pag;}}
+function syncRange(item){const minI=item.querySelector('input[data-bound="min"]'); const maxI=item.querySelector('input[data-bound="max"]'); if(+minI.value>+maxI.value){ if(event.target===minI) maxI.value=minI.value; else minI.value=maxI.value;} item.querySelector('.minv').textContent=minI.value; item.querySelector('.maxv').textContent=maxI.value; const min=+minI.min,max=+minI.max; const a=((+minI.value-min)/(max-min))*100,b=((+maxI.value-min)/(max-min))*100; item.querySelector('.track').style.background=`linear-gradient(to right,#ddd ${a}%,#ff6200 ${a}%,#ff6200 ${b}%,#ddd ${b}%)`; }
+document.addEventListener('input',e=>{const root=e.target.closest('.cwaf-root'); if(!root) return; if(e.target.matches('.cwaf-range input[type="range"]')) syncRange(e.target.closest('.cwaf-range')); run(root);});
+document.addEventListener('change',e=>{const root=e.target.closest('.cwaf-root'); if(root) run(root);});
+document.addEventListener('click',e=>{if(e.target.matches('.cwaf-acc-head')){const s=e.target.closest('.cwaf-acc-item');s.dataset.open=s.dataset.open==='1'?'0':'1';}
+if(e.target.matches('.cwaf-page')){const r=e.target.closest('.cwaf-root');run(r,parseInt(e.target.dataset.page||'1',10));}
+});
+document.querySelectorAll('.cwaf-root').forEach((r)=>{r.querySelectorAll('.cwaf-range').forEach(syncRange);run(r);});
 })();
