@@ -1,0 +1,1 @@
+.cwaf-wrap{display:grid;grid-template-columns:280px 1fr;gap:24px}.cwaf-filter-group{margin-bottom:16px}.cwaf-filter-group h4{margin:0 0 8px}.cwaf-results ul.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}@media (max-width:767px){.cwaf-wrap{grid-template-columns:1fr}}
