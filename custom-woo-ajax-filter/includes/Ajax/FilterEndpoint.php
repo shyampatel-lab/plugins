@@ -42,20 +42,22 @@ class FilterEndpoint {
 		$args = array(
 			'post_type'      => 'product',
 			'post_status'    => 'publish',
-			'posts_per_page' => 10,
+			'posts_per_page' => isset( $payload['per_page'] ) ? max( 1, min( 50, absint( $payload['per_page'] ) ) ) : 10,
 			'paged'          => $paged,
 			'tax_query'      => count( $tax_query ) > 1 ? $tax_query : array(),
 			'meta_query'     => $meta_query,
 			's'              => isset( $payload['search'] ) ? sanitize_text_field( $payload['search'] ) : '',
 		);
 
-		if ( isset( $payload['orderby'] ) && 'price' === $payload['orderby'] ) {
-			$args['orderby']  = 'meta_value_num';
-			$args['meta_key'] = '_price';
-			$args['order']    = 'ASC';
-		} elseif ( isset( $payload['orderby'] ) && 'title' === $payload['orderby'] ) {
-			$args['orderby'] = 'title';
-			$args['order']   = 'ASC';
+		if ( isset( $payload['orderby'] ) ) {
+			switch ( $payload['orderby'] ) {
+				case 'popularity': $args['meta_key'] = 'total_sales'; $args['orderby'] = 'meta_value_num'; break;
+				case 'rating': $args['meta_key'] = '_wc_average_rating'; $args['orderby'] = 'meta_value_num'; $args['order'] = 'DESC'; break;
+				case 'date': $args['orderby'] = 'date'; $args['order'] = 'DESC'; break;
+				case 'price-desc': $args['meta_key'] = '_price'; $args['orderby'] = 'meta_value_num'; $args['order'] = 'DESC'; break;
+				case 'price': $args['meta_key'] = '_price'; $args['orderby'] = 'meta_value_num'; $args['order'] = 'ASC'; break;
+				default: $args['orderby'] = array( 'menu_order' => 'ASC', 'title' => 'ASC' );
+			}
 		}
 
 		$query = new \WP_Query( $args );
